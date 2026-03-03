@@ -581,6 +581,19 @@ function resetExercises(sessId) {
 // Swap modal state
 let swapCtx = null; // { sessId, slotIdx, slotKey }
 
+// Safe exercise store — avoids inline JSON quoting bugs in onclick attributes
+const _exStore = {};
+function _storeEx(ex) {
+  const k = 'ex_' + Math.random().toString(36).slice(2, 9);
+  _exStore[k] = ex;
+  return k;
+}
+function _pickEx(k) {
+  const ex = _exStore[k];
+  if (!ex || !swapCtx) return;
+  swapExercise(swapCtx.sessId, swapCtx.slotIdx, ex);
+}
+
 function openSwapModal(sessId, slotIdx) {
   const isA = sessId === 'str-a';
   const slotKey = (isA ? 'slot_lower_' : 'slot_upper_') + slotIdx;
@@ -589,30 +602,28 @@ function openSwapModal(sessId, slotIdx) {
   swapCtx = { sessId, slotIdx, slotKey };
   const ph = logCtx ? phN(logCtx.weekNum) : 1;
   const activeExs = getActiveExercises(sessId, isA ? STR_LOWER : STR_UPPER, ph);
-  const currentName = activeExs[slotIdx]?.name;
+  const currentName = activeExs[slotIdx] ? activeExs[slotIdx].name : '';
   const all = [lib.recommended, ...lib.alternatives];
-  let h = `<div style="padding:0 0 10px">`;
-  h += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px">Choose Exercise for Slot ${slotIdx+1}</div>`;
+  let h = '<div style="padding:0 0 10px">';
+  h += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px">Choose Exercise for Slot ' + (slotIdx + 1) + '</div>';
   all.forEach(ex => {
     const isRec = ex === lib.recommended;
-    const isCurrent = ex.name === currentName;
-    h += `<div onclick="swapExercise('${sessId}',${slotIdx},${JSON.stringify(ex).replace(/"/g,'&quot;')})" style="
-      border:2px solid ${isCurrent ? 'var(--orange)' : isRec ? '#34d399' : 'var(--border)'};
-      background:${isCurrent ? '#fff8f3' : isRec ? '#f0fdf8' : 'white'};
-      border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;
-    ">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-        <div style="font-size:13px;font-weight:600;color:var(--ink);flex:1">${ex.name}</div>
-        ${isRec ? '<span style="font-size:8px;font-weight:700;background:#dcfce7;color:#166534;border-radius:3px;padding:2px 5px;white-space:nowrap">RECOMMENDED</span>' : ''}
-        ${isCurrent && !isRec ? '<span style="font-size:8px;font-weight:700;background:#fff0e0;color:#c05a1a;border-radius:3px;padding:2px 5px;white-space:nowrap">CURRENT</span>' : ''}
-        ${isCurrent && isRec ? '<span style="font-size:8px;font-weight:700;background:#dcfce7;color:#166534;border-radius:3px;padding:2px 5px;white-space:nowrap">✓ ACTIVE</span>' : ''}
-      </div>
-      <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px">${ex.plan}</div>
-      <div style="font-size:11px;color:#555;line-height:1.5">${ex.note}</div>
-    </div>`;
+    const isCur = ex.name === currentName;
+    const border = isCur ? 'var(--orange)' : isRec ? '#34d399' : 'var(--border)';
+    const bg = isCur ? '#fff8f3' : isRec ? '#f0fdf8' : 'white';
+    const k = _storeEx(ex);
+    let tag = '';
+    if (isRec && isCur) tag = '<span style="font-size:8px;font-weight:700;background:#dcfce7;color:#166534;border-radius:3px;padding:2px 5px">✓ ACTIVE</span>';
+    else if (isRec)    tag = '<span style="font-size:8px;font-weight:700;background:#dcfce7;color:#166534;border-radius:3px;padding:2px 5px">RECOMMENDED</span>';
+    else if (isCur)    tag = '<span style="font-size:8px;font-weight:700;background:#fff0e0;color:#c05a1a;border-radius:3px;padding:2px 5px">CURRENT</span>';
+    h += '<div onclick="_pickEx(\'' + k + '\')" style="border:2px solid ' + border + ';background:' + bg + ';border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;">';
+    h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:13px;font-weight:600;color:var(--ink);flex:1">' + ex.name + '</span>' + tag + '</div>';
+    h += '<div style="font-size:10px;color:var(--muted);font-family:monospace;margin-bottom:4px">' + ex.plan + '</div>';
+    h += '<div style="font-size:11px;color:#555;line-height:1.5">' + ex.note + '</div>';
+    h += '</div>';
   });
-  h += `<button onclick="resetExercises('${sessId}')" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--cream);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;margin-top:4px">↺ Reset all to recommended</button>`;
-  h += `</div>`;
+  h += '<button onclick="resetExercises(\'' + sessId + '\')" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--cream);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;margin-top:4px">↺ Reset all to recommended</button>';
+  h += '</div>';
   document.getElementById('swap-body').innerHTML = h;
   document.getElementById('swap-overlay').classList.add('open');
 }
