@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+<!-- CLEANED: removed EX library, swap modal, PR tracking, SESS state -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -176,11 +177,9 @@ input,textarea{font-family:inherit;}
 
 /* ── GYM LOG ── */
 .exblock{margin-bottom:14px;border:1px solid var(--border);border-radius:11px;overflow:hidden;}
-.exhead{background:#f8f5f0;padding:10px 13px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+.exhead{background:#f8f5f0;padding:10px 13px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .exname{font-size:13px;font-weight:600;color:var(--ink);}
-.exright{display:flex;align-items:center;gap:7px;}
 .explan{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;}
-.swapbtn{padding:6px 11px;border:1px solid var(--blue-mid);background:rgba(42,95,168,.08);color:var(--blue-mid);border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;}
 .stbl{width:100%;border-collapse:collapse;}
 .stbl th{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);padding:7px 8px;text-align:left;border-bottom:1px solid var(--border);}
 .stbl th.c{text-align:center;}
@@ -189,11 +188,9 @@ input,textarea{font-family:inherit;}
 .snum{font-size:11px;font-weight:600;color:var(--muted);text-align:center;width:28px;}
 .sinp{width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 6px;font-size:15px;font-weight:600;text-align:center;color:var(--ink);background:white;-webkit-appearance:none;}
 .sinp:focus{outline:none;border-color:var(--orange);}
-.sinp.pr{border-color:#34d399;background:#f0fdf8;}
 .scb{width:36px;height:36px;border:2px solid var(--border);border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:white;margin:0 auto;}
 .scb.ck{background:var(--green);border-color:var(--green);}
 .scb.ck::after{content:'✓';color:white;font-size:15px;font-weight:700;}
-.prbadge{font-size:8px;font-weight:700;background:#fef08a;color:#854d0e;border-radius:3px;padding:1px 4px;margin-left:3px;}
 .addset{width:100%;padding:9px;border:none;background:transparent;color:var(--orange);font-size:11px;font-weight:600;cursor:pointer;border-top:1px solid var(--border);}
 
 /* ── RUN LOG ── */
@@ -241,19 +238,6 @@ input,textarea{font-family:inherit;}
 .ambtn-c{background:var(--cream);color:var(--muted);border:1px solid var(--border);}
 .ambtn-ok{background:var(--orange);color:white;}
 .ambtn-ok:disabled{opacity:.4;cursor:not-allowed;}
-
-/* ── SWAP MODAL ── */
-.exopt{border:2px solid var(--border);border-radius:11px;padding:13px 14px;margin-bottom:9px;cursor:pointer;background:white;}
-.exopt:active{opacity:.8;}
-.exopt.rec{border-color:#34d399;background:#f0fdf8;}
-.exopt.cur{border-color:var(--orange);background:#fff8f3;}
-.exopt-tags{display:flex;gap:5px;margin-bottom:6px;}
-.extag{font-size:8px;font-weight:700;border-radius:3px;padding:2px 6px;text-transform:uppercase;}
-.extag-rec{background:#dcfce7;color:#166534;}
-.extag-cur{background:#fff7ed;color:#c05a1a;}
-.exopt-name{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:2px;}
-.exopt-plan{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;}
-.exopt-note{font-size:10px;color:#555;line-height:1.5;}
 
 /* ── RACE HERO ── */
 .racehero{background:linear-gradient(135deg,#0f1923,#1A3C6E);border-radius:14px;padding:28px;text-align:center;margin-bottom:18px;color:white;}
@@ -330,17 +314,6 @@ input,textarea{font-family:inherit;}
   </div>
 </div>
 
-<!-- SWAP MODAL -->
-<div class="overlay" id="swap-overlay" style="z-index:700">
-  <div class="modal">
-    <div class="mtop">
-      <div><h3>Swap Exercise</h3><div class="msub">Tap to switch · Green = recommended for ultra training</div></div>
-      <button class="mclose" onclick="closeSwap()">✕</button>
-    </div>
-    <div class="mbody" id="swap-body"></div>
-  </div>
-</div>
-
 <!-- ASSIGN MODAL -->
 <div class="aoverlay" id="aoverlay">
   <div class="amodal">
@@ -382,73 +355,7 @@ const PHASES=[
   {name:'Taper & Race',    icon:'🎯',weeks:[17,18],      dot:'#ef4444'},
 ];
 
-// ── Exercise library ──────────────────────────────────
-var EX = {
-  A:[
-    {rec:{n:'Bulgarian Split Squat',p:'4 × 8–10 / leg'},
-     note:'Best single-leg builder for trail climbing. High transfer to steep uphills.',
-     alt:[
-      {n:'Reverse Lunge',            p:'4 × 10–12 / leg', note:'Easier on knees, strong unilateral pattern.'},
-      {n:'Pistol Squat (assisted)',   p:'3 × 6–8 / leg',  note:'Advanced — full ROM, great stability demand.'},
-      {n:'Rear-Foot Elevated Squat',  p:'4 × 6–8 / leg',  note:'Heavier load variant — more quad drive.'},
-     ]},
-    {rec:{n:'Walking Lunges (weighted)',p:'3 × 12 / leg'},
-     note:'Mimics trail stride under load — transfers directly to running form.',
-     alt:[
-      {n:'Forward Lunge',     p:'3 × 12 / leg', note:'More controlled, less balance demand.'},
-      {n:'Lateral Lunge',     p:'3 × 10 / leg', note:'Frontal-plane stability — good for technical terrain.'},
-      {n:'Step-Back Lunge',   p:'3 × 12 / leg', note:'Less knee stress — use if knees feel the mileage.'},
-     ]},
-    {rec:{n:'Romanian Deadlift',p:'4 × 8–10'},
-     note:'Posterior chain king — hamstrings, glutes, lower back for descents.',
-     alt:[
-      {n:'Single-Leg RDL',         p:'3 × 10 / leg', note:'Superior balance + proprioception for trail.'},
-      {n:'Nordic Curl',            p:'3 × 6–8',       note:'Eccentric hamstring — best injury prevention.'},
-      {n:'Good Morning',           p:'4 × 10',        note:'Spinal erectors + hamstrings under hip hinge.'},
-     ]},
-    {rec:{n:'Step-Up (weighted)',p:'3 × 10 / leg'},
-     note:'Direct carryover to technical ascents. Use a 40–50 cm box.',
-     alt:[
-      {n:'Box Jump',          p:'4 × 5',         note:'Power + reactive strength — use early in season.'},
-      {n:'Lateral Step-Up',   p:'3 × 10 / leg',  note:'Hip abductor demand — great for cambered trails.'},
-      {n:'Deficit Lunge',     p:'3 × 10 / leg',  note:'Increases ROM — more glute activation.'},
-     ]},
-  ],
-  B:[
-    {rec:{n:'Plank (weighted)',p:'3 × 45–60 s'},
-     note:'Foundation of running posture. Add plate on back when easy.',
-     alt:[
-      {n:'Dead Bug',            p:'3 × 10 / side', note:'Anti-extension + contralateral pattern — very functional.'},
-      {n:'Ab Wheel Rollout',    p:'3 × 8–10',      note:'High anterior core demand — build slowly.'},
-      {n:'RKC Plank',           p:'3 × 20–30 s',   note:'Same time, 3× harder — squeeze everything.'},
-     ]},
-    {rec:{n:'Single-Leg Hip Thrust',p:'3 × 12 / leg'},
-     note:'Isolated glute max work. Essential for climb power and stride extension.',
-     alt:[
-      {n:'Glute Bridge (bilateral)',  p:'3 × 15',        note:'Entry point — progress to single-leg.'},
-      {n:'Cable Pull-Through',        p:'3 × 12',        note:'Hip hinge pattern with constant tension.'},
-      {n:'Banded Hip Thrust',         p:'3 × 15',        note:'Adds abduction demand — full glute complex.'},
-     ]},
-    {rec:{n:'Pallof Press',p:'3 × 12 / side'},
-     note:'Anti-rotation — critical for single-leg stability on technical terrain.',
-     alt:[
-      {n:'Copenhagen Plank',    p:'3 × 20–30 s / side', note:'Adductor + lateral core — prevents groin issues.'},
-      {n:'Side Plank + Row',    p:'3 × 10 / side',      note:'Combines lateral stability + pulling strength.'},
-      {n:'Landmine Rotation',   p:'3 × 10 / side',      note:'Rotational power — transfers to arm drive.'},
-     ]},
-    {rec:{n:'Calf Raise (single-leg)',p:'4 × 15 / leg'},
-     note:'Achilles/calf resilience for 3,100 m descent pounding. Non-negotiable.',
-     alt:[
-      {n:'Seated Calf Raise',     p:'4 × 15',        note:'Soleus focus — add weight for progression.'},
-      {n:'Jump Rope',             p:'3 × 90 s',      note:'Plyometric calf + ankle conditioning.'},
-      {n:'Eccentric Calf Drop',   p:'3 × 12 / leg',  note:'Slow 4-count down — best for tendon health.'},
-     ]},
-  ],
-};
-
 // ── Session pool ──────────────────────────────────────
-var SESS={};
-
 function buildPool(w){
   var rec2=w%4===0&&w>0,pk=isPeak(w);
   var pool=[
@@ -461,17 +368,17 @@ function buildPool(w){
     {id:'long2',type:'run',icon:'🗻',title:'Long Trail Run',vol:pk?'4h':'3h',desc:'Biggest session of the week. Mountain terrain if possible. Simulate race conditions.',bb:'#ddeaf8',hrz:['Z1','Z2'],exercises:null,nutr:true},
     {id:'gymA',type:'gym',icon:'💪',title:'Strength A — Legs',vol:'55–65 min',desc:'Lower body strength focus. Compound movements for trail power.',bb:'#f0e8f8',hrz:[],
      exercises:[
-       {name:SESS.gymA_0||EX.A[0].rec.n, plan:SESS.gymA_0p||EX.A[0].rec.p},
-       {name:SESS.gymA_1||EX.A[1].rec.n, plan:SESS.gymA_1p||EX.A[1].rec.p},
-       {name:SESS.gymA_2||EX.A[2].rec.n, plan:SESS.gymA_2p||EX.A[2].rec.p},
-       {name:SESS.gymA_3||EX.A[3].rec.n, plan:SESS.gymA_3p||EX.A[3].rec.p},
+       {name:'Bulgarian Split Squat', plan:'4 × 8–10 / leg'},
+       {name:'Walking Lunges (weighted)', plan:'3 × 12 / leg'},
+       {name:'Romanian Deadlift', plan:'4 × 8–10'},
+       {name:'Step-Up (weighted)', plan:'3 × 10 / leg'},
      ],nutr:false},
     {id:'gymB',type:'gym',icon:'🏋️',title:'Strength B — Core',vol:'45–55 min',desc:'Core stability and glute activation. Injury prevention focus.',bb:'#f8f0f8',hrz:[],
      exercises:[
-       {name:SESS.gymB_0||EX.B[0].rec.n, plan:SESS.gymB_0p||EX.B[0].rec.p},
-       {name:SESS.gymB_1||EX.B[1].rec.n, plan:SESS.gymB_1p||EX.B[1].rec.p},
-       {name:SESS.gymB_2||EX.B[2].rec.n, plan:SESS.gymB_2p||EX.B[2].rec.p},
-       {name:SESS.gymB_3||EX.B[3].rec.n, plan:SESS.gymB_3p||EX.B[3].rec.p},
+       {name:'Plank (weighted)', plan:'3 × 45–60 s'},
+       {name:'Single-Leg Hip Thrust', plan:'3 × 12 / leg'},
+       {name:'Pallof Press', plan:'3 × 12 / side'},
+       {name:'Calf Raise (single-leg)', plan:'4 × 15 / leg'},
      ],nutr:false},
     {id:'mob',type:'gym',icon:'🧘',title:'Mobility / Yoga',vol:'30–45 min',desc:'Hip flexors, hamstrings, calves, thoracic rotation. Foam roll + dynamic stretching.',bb:'#f0fdf8',hrz:[],exercises:null,nutr:false},
     {id:'hike',type:'run',icon:'⛰️',title:'Hike / Power Walk',vol:pk?'3h':'2h',desc:'Low-intensity mountain walk. Practice poles. Great for recovery weeks with elevation.',bb:'#f0f8ff',hrz:['Z1'],exercises:null,nutr:w>=8},
@@ -517,7 +424,7 @@ function weekNotes(w){
 }
 
 // ── State ─────────────────────────────────────────────
-var user=null,curW=1,schedCache={},logsCache=[],prsCache={},expanded={};
+var user=null,curW=1,schedCache={},logsCache=[],expanded={};
 
 function isRec(w){return w%4===0&&w>0&&w<18;}
 function isPeak(w){return w>=10&&w<=14&&!isRec(w);}
@@ -593,10 +500,9 @@ function sync(s){
 async function loadAll(){
   sync('spin');
   try{
-    var [sch,logs,prs]=await Promise.all([
+    var [sch,logs]=await Promise.all([
       sb.from('schedules').select('*').eq('user_id',user.id),
       sb.from('logs').select('*').eq('user_id',user.id),
-      sb.from('prs').select('*').eq('user_id',user.id),
     ]);
     schedCache={};
     (sch.data||[]).forEach(function(r){
@@ -604,8 +510,6 @@ async function loadAll(){
       schedCache[r.week_num][r.day_index]={session_id:r.session_id,done:r.done,id:r.id};
     });
     logsCache=logs.data||[];
-    prsCache={};
-    (prs.data||[]).forEach(function(r){prsCache[r.exercise_name]=r.best_weight;});
     sync('ok');
     render();
     renderSidebar();
@@ -715,21 +619,12 @@ function renderLogBody(sess,w,d){
 function renderGymLog(sess,w,d){
   var h='';
   sess.exercises.forEach(function(ex,ei){
-    var exKey=sess.id+'_ex'+ei;
-    var prevSets=JSON.parse(localStorage.getItem?localStorage.getItem(exKey)||'[]':'[]');
-    h+='<div class="exblock"><div class="exhead"><div class="exname">'+ex.name+'</div><div class="exright"><span class="explan">'+ex.plan+'</span>';
-    var exIdx=parseInt(sess.id.replace('gym','').replace('A','0').replace('B','1'))||0;
-    var letter=sess.id.includes('A')?'A':'B';
-    h+='<button class="swapbtn" onclick="openSwap(\''+letter+'\','+ei+',\''+sess.id+'\')">Swap</button>';
-    h+='</div></div>';
+    h+='<div class="exblock"><div class="exhead"><div class="exname">'+ex.name+'</div><span class="explan">'+ex.plan+'</span></div>';
     h+='<table class="stbl"><thead><tr><th class="c">#</th><th>Weight (kg)</th><th>Reps</th><th class="c">Done</th></tr></thead><tbody id="sets-'+ei+'">';
     var numSets=parseInt((ex.plan.match(/^(\d+)/)||[0,3])[1])||3;
     for(var s=0;s<numSets;s++){
-      var pr=prsCache[ex.name]||'';
-      var prevW=prevSets[s]?prevSets[s].w:'';
-      var isPR=prevW&&pr&&parseFloat(prevW)>=parseFloat(pr);
       h+='<tr><td class="snum">'+(s+1)+'</td>';
-      h+='<td><input class="sinp'+(isPR?' pr':'')+'" type="number" min="0" step="2.5" placeholder="kg" id="w-'+ei+'-'+s+'" value="'+(prevW||'')+'"'+(isPR?' title="PR!"':'')+'>'+(isPR?'<span class="prbadge">PR</span>':'')+'</td>';
+      h+='<td><input class="sinp" type="number" min="0" step="2.5" placeholder="kg" id="w-'+ei+'-'+s+'"></td>';
       h+='<td><input class="sinp" type="number" min="1" step="1" placeholder="reps" id="r-'+ei+'-'+s+'"></td>';
       h+='<td><div class="scb" id="cb-'+ei+'-'+s+'" onclick="toggleCB('+ei+','+s+')"></div></td>';
       h+='</tr>';
@@ -818,14 +713,6 @@ async function saveLog(){
         if(w)sets.push({w:w.value,r:r?r.value:'',done:c?c.classList.contains('ck'):false});
       });
       return{name:ex.name,sets:sets};
-    });
-    // Update PRs
-    data.sets.forEach(function(s){
-      var best=Math.max.apply(null,s.sets.filter(function(x){return x.done&&x.w;}).map(function(x){return parseFloat(x.w)||0;}));
-      if(best>0&&best>(prsCache[s.name]||0)){
-        prsCache[s.name]=best;
-        sb.from('prs').upsert({user_id:user.id,exercise_name:s.name,best_weight:best},{onConflict:'user_id,exercise_name'});
-      }
     });
   }else if(sess.type==='run'){
     var dist=document.getElementById('rl-dist'),dur=document.getElementById('rl-dur');
@@ -1039,7 +926,6 @@ function selWeek(w){curW=w;expanded={};render();document.getElementById('content
 // ════════════════════════════════════════════════════════
 document.getElementById('aoverlay').addEventListener('click',function(e){if(e.target===e.currentTarget)closeAssign();});
 document.getElementById('log-overlay').addEventListener('click',function(e){if(e.target===e.currentTarget)closeLog();});
-document.getElementById('swap-overlay').addEventListener('click',function(e){if(e.target===e.currentTarget)closeSwap();});
 document.getElementById('aemail').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('apw').focus();});
 document.getElementById('apw').addEventListener('keydown',function(e){if(e.key==='Enter')doAuth();});
 
