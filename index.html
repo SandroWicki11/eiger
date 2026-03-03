@@ -290,14 +290,17 @@ input,textarea,select{font-family:inherit;}
     <div class="auth-logo">EIGER <span>E51</span></div>
     <div class="auth-sub">Your 18-week race preparation.<br>Sign in to sync across all your devices.</div>
     <div id="auth-form">
-      <label class="auth-label" id="auth-mode-label">Sign In</label>
+      <label class="auth-label">Email address</label>
       <input class="auth-input" type="email" id="auth-email" placeholder="you@example.com" autocomplete="email">
-      <input class="auth-input" type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password">
-      <button class="auth-btn" id="auth-btn" onclick="submitAuth()">Sign In</button>
-      <div style="margin-top:10px;text-align:center">
-        <button style="background:none;border:none;color:#4a6080;font-size:12px;cursor:pointer;text-decoration:underline" id="auth-toggle-btn" onclick="toggleSignUp()">No account yet? Sign up</button>
-      </div>
+      <button class="auth-btn" id="auth-btn" onclick="sendMagicLink()">Send Magic Link</button>
       <div class="auth-msg" id="auth-msg"></div>
+    </div>
+    <div id="auth-otp-form" style="display:none">
+      <label class="auth-label">Enter the 6-digit code from your email</label>
+      <input class="auth-input" type="text" id="auth-otp" placeholder="123456" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+      <button class="auth-btn" id="auth-otp-btn" onclick="verifyOtp()">Verify Code</button>
+      <div style="margin-top:10px"><button style="background:none;border:none;color:#4a6080;font-size:12px;cursor:pointer;text-decoration:underline" onclick="showEmailForm()">← Use different email</button></div>
+      <div class="auth-msg" id="auth-otp-msg"></div>
     </div>
   </div>
 </div>
@@ -355,8 +358,8 @@ input,textarea,select{font-family:inherit;}
 // ══════════════════════════════════════════════════════════════
 // CONFIGURATION — PASTE YOUR SUPABASE DETAILS HERE
 // ══════════════════════════════════════════════════════════════
-const SUPABASE_URL = 'https://wooqppuzbgxbqsltvaaw.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indvb3FwcHV6Ymd4YnFzbHR2YWF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MzQwNjcsImV4cCI6MjA4ODExMDA2N30.dM_zxlC8sw_55pQNGNOA0z8DwANu4QP4hVd6U-LzGs8';
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 // ══════════════════════════════════════════════════════════════
 
 const { createClient } = supabase;
@@ -434,35 +437,47 @@ function loadFromLocal() {
 }
 
 // ─── AUTH ─────────────────────────────────────────────────────
-let isSignUp = false;
+let otpEmail = '';
 
-function toggleSignUp() {
-  isSignUp = !isSignUp;
-  document.getElementById('auth-mode-label').textContent = isSignUp ? 'Create Account' : 'Sign In';
-  document.getElementById('auth-btn').textContent = isSignUp ? 'Sign Up' : 'Sign In';
-  document.getElementById('auth-toggle-btn').textContent = isSignUp ? 'Already have an account? Sign in' : 'No account yet? Sign up';
-  document.getElementById('auth-msg').textContent = '';
-}
-
-async function submitAuth() {
+async function sendMagicLink() {
   const email = document.getElementById('auth-email').value.trim();
-  const password = document.getElementById('auth-password').value;
-  if (!email || !password) return;
+  if (!email) return;
   document.getElementById('auth-btn').disabled = true;
   document.getElementById('auth-msg').className = 'auth-msg';
-  document.getElementById('auth-msg').textContent = isSignUp ? 'Creating account…' : 'Signing in…';
-  const { error } = isSignUp
-    ? await sb.auth.signUp({ email, password })
-    : await sb.auth.signInWithPassword({ email, password });
+  document.getElementById('auth-msg').textContent = 'Sending…';
+  const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
   if (error) {
     document.getElementById('auth-msg').className = 'auth-msg err';
     document.getElementById('auth-msg').textContent = error.message;
     document.getElementById('auth-btn').disabled = false;
-  } else if (isSignUp) {
-    document.getElementById('auth-msg').className = 'auth-msg ok';
-    document.getElementById('auth-msg').textContent = 'Account created! Signing you in…';
+  } else {
+    otpEmail = email;
+    document.getElementById('auth-form').style.display = 'none';
+    document.getElementById('auth-otp-form').style.display = 'block';
+    document.getElementById('auth-otp-msg').className = 'auth-msg ok';
+    document.getElementById('auth-otp-msg').textContent = `Code sent to ${email}`;
   }
-  // onAuthStateChange handles the rest
+}
+
+async function verifyOtp() {
+  const token = document.getElementById('auth-otp').value.trim();
+  if (token.length < 6) return;
+  document.getElementById('auth-otp-btn').disabled = true;
+  document.getElementById('auth-otp-msg').className = 'auth-msg';
+  document.getElementById('auth-otp-msg').textContent = 'Verifying…';
+  const { error } = await sb.auth.verifyOtp({ email: otpEmail, token, type: 'email' });
+  if (error) {
+    document.getElementById('auth-otp-msg').className = 'auth-msg err';
+    document.getElementById('auth-otp-msg').textContent = 'Invalid code. Try again.';
+    document.getElementById('auth-otp-btn').disabled = false;
+  }
+  // onAuthStateChange will handle the rest
+}
+
+function showEmailForm() {
+  document.getElementById('auth-form').style.display = 'block';
+  document.getElementById('auth-otp-form').style.display = 'none';
+  document.getElementById('auth-btn').disabled = false;
 }
 
 async function signOut() {
@@ -470,8 +485,7 @@ async function signOut() {
   scheduleCache = {}; logsCache = [];
   document.getElementById('app').style.display = 'none';
   document.getElementById('auth-screen').classList.add('visible');
-  document.getElementById('auth-btn').disabled = false;
-  document.getElementById('auth-msg').textContent = '';
+  showEmailForm();
 }
 
 // ─── DATA LAYER ───────────────────────────────────────────────
@@ -911,21 +925,11 @@ function selWeek(w){curWeek=w;expanded={};render();document.getElementById('cont
 // ─── BOOT ─────────────────────────────────────────────────────
 document.getElementById('assign-overlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeAssign();});
 document.getElementById('log-overlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeLog();});
-document.getElementById('auth-email').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('auth-password').focus();});
-document.getElementById('auth-password').addEventListener('keydown',e=>{if(e.key==='Enter')submitAuth();});
+document.getElementById('auth-email').addEventListener('keydown',e=>{if(e.key==='Enter')sendMagicLink();});
+document.getElementById('auth-otp').addEventListener('keydown',e=>{if(e.key==='Enter')verifyOtp();});
 
 function updateCountdown(){const diff=Math.ceil((RACE_DATE-new Date())/86400000);const el=document.getElementById('cd');if(el)el.textContent=diff>0?diff:'🏁';}
 function cwn(){const now=new Date();for(let w=1;w<=18;w++){if(now>=dateOfWeek(w)&&now<=dateOfWeek(w,6))return w;}return now<START_DATE?1:18;}
-
-// Handle GitHub Pages 404 redirect for auth callbacks
-(function() {
-  const redirect = sessionStorage.getItem('redirect');
-  if (redirect) {
-    sessionStorage.removeItem('redirect');
-    const url = new URL(redirect);
-    if (url.hash) window.location.hash = url.hash;
-  }
-})();
 
 // Auth state listener — single source of truth for showing app vs login
 sb.auth.onAuthStateChange(async (event, session) => {
