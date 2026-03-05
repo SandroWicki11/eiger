@@ -2,8 +2,6 @@
    EIGER ULTRA TRAINING - MAIN SCRIPT
    ============================================ */
 
-'use strict';
-
 // ── CONFIG ──────────────────────────────────────────────────────────────────
 const CONFIG = {
   raceDate: new Date('2026-07-18T07:00:00'),
@@ -246,6 +244,11 @@ function initNav() {
       setSection(section);
     });
   });
+
+  const prevBtn = document.getElementById('week-prev');
+  const nextBtn = document.getElementById('week-next');
+  if (prevBtn) prevBtn.addEventListener('click', () => changeWeek(-1));
+  if (nextBtn) nextBtn.addEventListener('click', () => changeWeek(1));
 }
 
 function setSection(section) {
@@ -447,10 +450,6 @@ function changeWeek(delta) {
   renderWeekView(phase.template);
   updateWeekLabel();
 }
-
-// expose globally
-window.changeWeek = changeWeek;
-window.setSection = setSection;
 
 // ── STRENGTH ─────────────────────────────────────────────────────────────────
 function renderStrength() {

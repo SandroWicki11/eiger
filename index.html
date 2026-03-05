@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Eiger Ultra E51 — Training Hub</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
@@ -32,35 +32,35 @@
 
     <nav class="sidebar-nav">
       <div class="nav-section-label">Overview</div>
-      <button class="nav-item active" data-section="dashboard" onclick="setSection('dashboard')">
+      <button class="nav-item active" data-section="dashboard">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
         Dashboard
       </button>
-      <button class="nav-item" data-section="plan" onclick="setSection('plan')">
+      <button class="nav-item" data-section="plan">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
         Training Plan
       </button>
 
       <div class="nav-section-label">Training</div>
-      <button class="nav-item" data-section="calendar" onclick="setSection('calendar')">
+      <button class="nav-item" data-section="calendar">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         Weekly Calendar
       </button>
-      <button class="nav-item" data-section="strength" onclick="setSection('strength')">
+      <button class="nav-item" data-section="strength">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.5 6.5h11M6.5 17.5h11M4 12h16M4 12l2.5-2.5M4 12l2.5 2.5M20 12l-2.5-2.5M20 12l-2.5 2.5"/></svg>
         Strength Sessions
       </button>
-      <button class="nav-item" data-section="zones" onclick="setSection('zones')">
+      <button class="nav-item" data-section="zones">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         HR Zones
       </button>
 
       <div class="nav-section-label">Race Prep</div>
-      <button class="nav-item" data-section="nutrition" onclick="setSection('nutrition')">
+      <button class="nav-item" data-section="nutrition">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
         Nutrition & Fuel
       </button>
-      <button class="nav-item" data-section="raceday" onclick="setSection('raceday')">
+      <button class="nav-item" data-section="raceday">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
         Race Day
       </button>
@@ -358,14 +358,14 @@
 
       <div class="card section-gap">
         <div class="week-header">
-          <button class="week-nav-btn" onclick="changeWeek(-1)">
+          <button class="week-nav-btn" id="week-prev">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
           <div style="text-align:center">
             <div class="week-label" id="week-label">This Week</div>
             <div class="week-phase-tag" id="week-phase-tag">Base Building</div>
           </div>
-          <button class="week-nav-btn" onclick="changeWeek(1)">
+          <button class="week-nav-btn" id="week-next">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
         </div>
