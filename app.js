@@ -553,3 +553,519 @@ function renderRaceDay() {
     `).join('');
   }
 }
+
+/* ═══════════════════════════════════════════
+   WORKOUT TRACKER MODULE
+═══════════════════════════════════════════ */
+
+// ── EXERCISE POOL DEFINITION ─────────────────────────────────────────────────
+const EXERCISE_POOL = [
+  // Runs
+  { id: 'run-z2',       name: 'Z2 Easy Run',           cat: 'run',      icon: '🏃' },
+  { id: 'run-long',     name: 'Long Run',               cat: 'run',      icon: '🏔️' },
+  { id: 'run-trail',    name: 'Trail Run',              cat: 'run',      icon: '⛰️' },
+  { id: 'run-recovery', name: 'Recovery Run',           cat: 'run',      icon: '🐢' },
+  // Strength — Upper
+  { id: 'pullups',      name: 'Pull-Ups',               cat: 'strength', icon: '💪' },
+  { id: 'ohpress',      name: 'Overhead Press',         cat: 'strength', icon: '🏋️' },
+  { id: 'lat-raises',   name: 'Lateral Raises',         cat: 'strength', icon: '🔆' },
+  { id: 'rows',         name: 'Dumbbell Rows',          cat: 'strength', icon: '💪' },
+  // Strength — Lower
+  { id: 'bss',          name: 'Bulgarian Split Squat',  cat: 'strength', icon: '🦵' },
+  { id: 'lunges',       name: 'Walking Lunges',         cat: 'strength', icon: '🦵' },
+  { id: 'stepups',      name: 'Step-Ups (High Box)',    cat: 'strength', icon: '📦' },
+  { id: 'calf-raise',   name: 'Single-Leg Calf Raise',  cat: 'strength', icon: '🦶' },
+  { id: 'hip-thrust',   name: 'Hip Thrust',             cat: 'strength', icon: '🏋️' },
+  // Core
+  { id: 'plank',        name: 'Plank',                  cat: 'strength', icon: '🧱' },
+  { id: 'dead-bug',     name: 'Dead Bug',               cat: 'strength', icon: '🐛' },
+  { id: 'side-plank',   name: 'Side Plank',             cat: 'strength', icon: '🧱' },
+  // Mobility
+  { id: 'hip-flex',     name: 'Hip Flexor Stretch',     cat: 'mobility', icon: '🧘' },
+  { id: 'foam-roll',    name: 'Foam Rolling',           cat: 'mobility', icon: '🫀' },
+  { id: 'yoga',         name: 'Yoga / Stretching',      cat: 'mobility', icon: '🧘' },
+];
+
+// ── TRACKER STATE ─────────────────────────────────────────────────────────────
+// Structure: trackerData[weekKey][dayIndex] = [ { exerciseId, name, cat, icon, sets: [...], runData: {...} } ]
+let trackerData = {};
+let trackerWeekOffset = 0;
+let customExercises = [];
+let draggedExercise = null;
+let modalState = { weekKey: null, dayIndex: null, workoutIndex: null };
+
+// Pool items currently shown (filtered)
+let activeFilter = 'all';
+
+// ── INIT TRACKER ──────────────────────────────────────────────────────────────
+function initTracker() {
+  loadTrackerData();
+  renderPool();
+  renderTrackerWeek();
+  initPoolFilters();
+  initCustomExercise();
+  initModal();
+
+  document.getElementById('tracker-prev').addEventListener('click', () => {
+    trackerWeekOffset--;
+    renderTrackerWeek();
+  });
+  document.getElementById('tracker-next').addEventListener('click', () => {
+    trackerWeekOffset++;
+    renderTrackerWeek();
+  });
+}
+
+// ── PERSISTENCE ───────────────────────────────────────────────────────────────
+function saveTrackerData() {
+  try {
+    localStorage.setItem('eigerTrackerData', JSON.stringify(trackerData));
+    localStorage.setItem('eigerCustomExercises', JSON.stringify(customExercises));
+  } catch(e) { console.warn('Storage unavailable'); }
+}
+
+function loadTrackerData() {
+  try {
+    const d = localStorage.getItem('eigerTrackerData');
+    const c = localStorage.getItem('eigerCustomExercises');
+    if (d) trackerData = JSON.parse(d);
+    if (c) customExercises = JSON.parse(c);
+  } catch(e) { trackerData = {}; customExercises = []; }
+}
+
+// ── WEEK KEY ──────────────────────────────────────────────────────────────────
+function getWeekKey(offset) {
+  const today = new Date();
+  const dow = today.getDay();
+  const mondayOff = dow === 0 ? -6 : 1 - dow;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + mondayOff + offset * 7);
+  return monday.toISOString().slice(0, 10); // "YYYY-MM-DD" of that Monday
+}
+
+function getMondayForOffset(offset) {
+  const today = new Date();
+  const dow = today.getDay();
+  const mondayOff = dow === 0 ? -6 : 1 - dow;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + mondayOff + offset * 7);
+  return monday;
+}
+
+// ── POOL ──────────────────────────────────────────────────────────────────────
+function allPoolExercises() {
+  return [...EXERCISE_POOL, ...customExercises];
+}
+
+function renderPool() {
+  const container = document.getElementById('exercise-pool');
+  if (!container) return;
+
+  const exercises = allPoolExercises().filter(e =>
+    activeFilter === 'all' || e.cat === activeFilter
+  );
+
+  container.innerHTML = exercises.map(ex => `
+    <div class="pool-item" draggable="true" data-ex-id="${ex.id}"
+         title="Drag to a training day">
+      <span class="pool-item-icon">${ex.icon}</span>
+      <span class="pool-item-name">${ex.name}</span>
+      <span class="pool-item-cat cat-${ex.cat}">${ex.cat}</span>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('.pool-item').forEach(el => {
+    el.addEventListener('dragstart', (e) => {
+      const id = el.dataset.exId;
+      draggedExercise = allPoolExercises().find(x => x.id === id);
+      el.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'copy';
+    });
+    el.addEventListener('dragend', () => {
+      el.classList.remove('dragging');
+      draggedExercise = null;
+    });
+  });
+}
+
+function initPoolFilters() {
+  document.getElementById('pool-filters').addEventListener('click', (e) => {
+    const btn = e.target.closest('.pool-filter-btn');
+    if (!btn) return;
+    activeFilter = btn.dataset.filter;
+    document.querySelectorAll('.pool-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderPool();
+  });
+}
+
+function initCustomExercise() {
+  document.getElementById('add-custom-ex').addEventListener('click', () => {
+    const name = document.getElementById('custom-ex-name').value.trim();
+    const cat  = document.getElementById('custom-ex-type').value;
+    if (!name) return;
+    const icons = { run: '🏃', strength: '💪', mobility: '🧘' };
+    const id = 'custom-' + Date.now();
+    customExercises.push({ id, name, cat, icon: icons[cat] });
+    document.getElementById('custom-ex-name').value = '';
+    saveTrackerData();
+    renderPool();
+  });
+}
+
+// ── TRACKER WEEK RENDER ───────────────────────────────────────────────────────
+function renderTrackerWeek() {
+  const weekKey = getWeekKey(trackerWeekOffset);
+  const monday = getMondayForOffset(trackerWeekOffset);
+  const today = new Date();
+
+  // Update header
+  const endOfWeek = new Date(monday);
+  endOfWeek.setDate(monday.getDate() + 6);
+  const fmt = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+  const lbl = document.getElementById('tracker-week-label');
+  const phaseTag = document.getElementById('tracker-phase-tag');
+  if (lbl) {
+    if (trackerWeekOffset === 0) lbl.textContent = `This Week · ${fmt(monday)} – ${fmt(endOfWeek)}`;
+    else if (trackerWeekOffset === 1) lbl.textContent = `Next Week · ${fmt(monday)} – ${fmt(endOfWeek)}`;
+    else if (trackerWeekOffset === -1) lbl.textContent = `Last Week · ${fmt(monday)} – ${fmt(endOfWeek)}`;
+    else lbl.textContent = `${fmt(monday)} – ${fmt(endOfWeek)}`;
+  }
+  if (phaseTag) {
+    const p = getPhaseForOffset(trackerWeekOffset);
+    phaseTag.textContent = p.label;
+  }
+
+  // Ensure week data exists
+  if (!trackerData[weekKey]) trackerData[weekKey] = [[], [], [], [], [], [], []];
+
+  const grid = document.getElementById('tracker-grid');
+  if (!grid) return;
+
+  const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  grid.innerHTML = DAY_NAMES.map((dayName, dayIdx) => {
+    const dateObj = new Date(monday);
+    dateObj.setDate(monday.getDate() + dayIdx);
+    const isToday = dateObj.toDateString() === today.toDateString();
+    const workouts = (trackerData[weekKey] && trackerData[weekKey][dayIdx]) || [];
+
+    const workoutCards = workouts.map((w, wIdx) => {
+      const hasData = hasLoggedData(w);
+      return `
+        <div class="logged-workout" data-week="${weekKey}" data-day="${dayIdx}" data-wi="${wIdx}">
+          <div class="logged-workout-name">
+            <span>${w.icon}</span>
+            <span>${w.name}</span>
+            ${hasData ? '<span class="workout-complete-badge" title="Logged"></span>' : '<span class="workout-logged-badge" title="Not yet logged"></span>'}
+          </div>
+          <div class="logged-workout-meta">${getWorkoutSummary(w)}</div>
+          <button class="logged-workout-delete" data-week="${weekKey}" data-day="${dayIdx}" data-wi="${wIdx}" title="Remove">×</button>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="tracker-day-col${isToday ? ' today-col' : ''}" data-week="${weekKey}" data-day="${dayIdx}">
+        <div class="tracker-day-header">
+          <div class="tracker-day-name">${dayName}</div>
+          <div class="tracker-day-num${isToday ? ' today-num' : ''}">${dateObj.getDate()}</div>
+        </div>
+        ${workoutCards}
+        ${workouts.length === 0 ? '<div class="tracker-day-drop-hint">drop here</div>' : ''}
+      </div>
+    `;
+  }).join('');
+
+  // Drag-over events on columns
+  grid.querySelectorAll('.tracker-day-col').forEach(col => {
+    col.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      col.classList.add('drag-over');
+    });
+    col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
+    col.addEventListener('drop', (e) => {
+      e.preventDefault();
+      col.classList.remove('drag-over');
+      if (!draggedExercise) return;
+      const wk = col.dataset.week;
+      const di = parseInt(col.dataset.day);
+      if (!trackerData[wk]) trackerData[wk] = [[], [], [], [], [], [], []];
+      // Clone exercise, attach empty data
+      const entry = {
+        ...draggedExercise,
+        sets: draggedExercise.cat === 'strength' ? [{ reps: '', weight: '', notes: '' }] : [],
+        runData: draggedExercise.cat === 'run' ? { distance: '', duration: '', pace: '', avgHR: '', maxHR: '', elevGain: '', notes: '' } : null,
+        mobilityData: draggedExercise.cat === 'mobility' ? { duration: '', notes: '' } : null,
+      };
+      trackerData[wk][di].push(entry);
+      saveTrackerData();
+      renderTrackerWeek();
+    });
+  });
+
+  // Click to open modal
+  grid.querySelectorAll('.logged-workout').forEach(el => {
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('.logged-workout-delete')) return;
+      const wk = el.dataset.week;
+      const di = parseInt(el.dataset.day);
+      const wi = parseInt(el.dataset.wi);
+      openLogModal(wk, di, wi);
+    });
+  });
+
+  // Delete workout
+  grid.querySelectorAll('.logged-workout-delete').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const wk = btn.dataset.week;
+      const di = parseInt(btn.dataset.day);
+      const wi = parseInt(btn.dataset.wi);
+      trackerData[wk][di].splice(wi, 1);
+      saveTrackerData();
+      renderTrackerWeek();
+    });
+  });
+}
+
+function hasLoggedData(w) {
+  if (w.cat === 'run' && w.runData) return !!(w.runData.distance || w.runData.duration);
+  if (w.cat === 'mobility' && w.mobilityData) return !!(w.mobilityData.duration);
+  if (w.cat === 'strength' && w.sets) return w.sets.some(s => s.reps || s.weight);
+  return false;
+}
+
+function getWorkoutSummary(w) {
+  if (w.cat === 'run' && w.runData) {
+    const parts = [];
+    if (w.runData.distance) parts.push(w.runData.distance + ' km');
+    if (w.runData.duration) parts.push(w.runData.duration);
+    if (w.runData.avgHR)    parts.push('~' + w.runData.avgHR + ' bpm');
+    return parts.length ? parts.join(' · ') : 'Tap to log';
+  }
+  if (w.cat === 'strength' && w.sets && w.sets.length) {
+    const logged = w.sets.filter(s => s.reps || s.weight).length;
+    return logged ? `${w.sets.length} sets · ${logged} logged` : 'Tap to log sets';
+  }
+  if (w.cat === 'mobility' && w.mobilityData) {
+    return w.mobilityData.duration ? w.mobilityData.duration + ' min' : 'Tap to log';
+  }
+  return 'Tap to log';
+}
+
+// ── LOG MODAL ─────────────────────────────────────────────────────────────────
+function initModal() {
+  document.getElementById('modal-close').addEventListener('click', closeLogModal);
+  document.getElementById('log-modal-overlay').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('log-modal-overlay')) closeLogModal();
+  });
+}
+
+function openLogModal(weekKey, dayIndex, workoutIndex) {
+  modalState = { weekKey, dayIndex, workoutIndex };
+  const workout = trackerData[weekKey][dayIndex][workoutIndex];
+  const overlay = document.getElementById('log-modal-overlay');
+  const content = document.getElementById('modal-content');
+
+  content.innerHTML = buildModalContent(workout);
+  overlay.style.display = 'flex';
+
+  // Bind modal events
+  if (workout.cat === 'strength') {
+    bindStrengthModal(weekKey, dayIndex, workoutIndex);
+  } else if (workout.cat === 'run') {
+    bindRunModal(weekKey, dayIndex, workoutIndex);
+  } else if (workout.cat === 'mobility') {
+    bindMobilityModal(weekKey, dayIndex, workoutIndex);
+  }
+
+  document.getElementById('modal-save').addEventListener('click', () => {
+    saveModalData(weekKey, dayIndex, workoutIndex);
+  });
+}
+
+function closeLogModal() {
+  document.getElementById('log-modal-overlay').style.display = 'none';
+}
+
+function buildModalContent(workout) {
+  const dateStr = ''; // could enhance with actual date
+  let html = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+      <span style="font-size:28px">${workout.icon}</span>
+      <div>
+        <div style="font-family:var(--font-display);font-size:22px;letter-spacing:0.02em">${workout.name}</div>
+        <div style="font-size:11px;font-family:var(--font-mono);color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em">${workout.cat}</div>
+      </div>
+    </div>
+  `;
+
+  if (workout.cat === 'run') {
+    const r = workout.runData || {};
+    html += `
+      <div class="run-fields-grid">
+        <div>
+          <div class="modal-field-label">Distance (km)</div>
+          <input type="number" id="run-distance" placeholder="e.g. 12.5" step="0.1" value="${r.distance || ''}" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:var(--font-body);background:var(--bg-muted);color:var(--text)">
+        </div>
+        <div>
+          <div class="modal-field-label">Duration (h:mm:ss)</div>
+          <input type="text" id="run-duration" placeholder="e.g. 1:05:30" value="${r.duration || ''}" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:var(--font-body);background:var(--bg-muted);color:var(--text)">
+        </div>
+        <div>
+          <div class="modal-field-label">Avg Pace (min/km)</div>
+          <input type="text" id="run-pace" placeholder="e.g. 7:30" value="${r.pace || ''}" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:var(--font-body);background:var(--bg-muted);color:var(--text)">
+        </div>
+        <div>
+          <div class="modal-field-label">Average HR (bpm)</div>
+          <input type="number" id="run-avg-hr" placeholder="e.g. 152" value="${r.avgHR || ''}" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:var(--font-body);background:var(--bg-muted);color:var(--text)">
+        </div>
+        <div>
+          <div class="modal-field-label">Max HR (bpm)</div>
+          <input type="number" id="run-max-hr" placeholder="e.g. 168" value="${r.maxHR || ''}" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:var(--font-body);background:var(--bg-muted);color:var(--text)">
+        </div>
+        <div>
+          <div class="modal-field-label">Elevation Gain (m)</div>
+          <input type="number" id="run-elev" placeholder="e.g. 320" value="${r.elevGain || ''}" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:var(--font-body);background:var(--bg-muted);color:var(--text)">
+        </div>
+      </div>
+      <div class="modal-field-label" style="margin-top:4px">Feel / Notes</div>
+      <textarea id="run-notes" placeholder="How did it feel? Weather, terrain, observations..." rows="3"
+        style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font-body);background:var(--bg-muted);color:var(--text);resize:vertical">${r.notes || ''}</textarea>
+    `;
+  } else if (workout.cat === 'strength') {
+    const sets = workout.sets && workout.sets.length ? workout.sets : [{ reps: '', weight: '', notes: '' }];
+    html += `
+      <div style="display:grid;grid-template-columns:28px 1fr 1fr 1fr 32px;gap:6px;margin-bottom:6px">
+        <div class="modal-field-label">#</div>
+        <div class="modal-field-label">Reps</div>
+        <div class="modal-field-label">Weight (kg)</div>
+        <div class="modal-field-label">Notes</div>
+        <div></div>
+      </div>
+      <div id="sets-container">
+        ${sets.map((s, i) => buildSetRow(i, s)).join('')}
+      </div>
+      <button class="modal-add-set-btn" id="add-set-btn">+ Add Set</button>
+    `;
+  } else if (workout.cat === 'mobility') {
+    const m = workout.mobilityData || {};
+    html += `
+      <div class="modal-field-label">Duration (minutes)</div>
+      <input type="number" id="mob-duration" placeholder="e.g. 15" value="${m.duration || ''}"
+        style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:var(--font-body);background:var(--bg-muted);color:var(--text);margin-bottom:12px">
+      <div class="modal-field-label">Notes</div>
+      <textarea id="mob-notes" placeholder="What did you focus on?" rows="3"
+        style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font-body);background:var(--bg-muted);color:var(--text);resize:vertical">${m.notes || ''}</textarea>
+    `;
+  }
+
+  html += `<button class="modal-save-btn" id="modal-save">Save Workout</button>`;
+  return html;
+}
+
+function buildSetRow(index, set) {
+  return `
+    <div class="set-row strength-row" data-set-idx="${index}">
+      <div class="set-num">${index + 1}</div>
+      <input type="number" class="set-reps" placeholder="Reps" value="${set.reps || ''}" min="0">
+      <input type="number" class="set-weight" placeholder="kg" value="${set.weight || ''}" min="0" step="0.5">
+      <input type="text"   class="set-notes" placeholder="Notes" value="${set.notes || ''}">
+      <button class="set-delete-btn" data-idx="${index}" title="Remove set">×</button>
+    </div>
+  `;
+}
+
+function bindStrengthModal(wk, di, wi) {
+  const container = document.getElementById('sets-container');
+
+  container.addEventListener('click', (e) => {
+    const btn = e.target.closest('.set-delete-btn');
+    if (!btn) return;
+    const idx = parseInt(btn.dataset.idx);
+    const rows = container.querySelectorAll('.set-row');
+    if (rows.length <= 1) return; // keep at least one
+    rows[idx].remove();
+    // Re-number
+    container.querySelectorAll('.set-row').forEach((row, i) => {
+      row.dataset.setIdx = i;
+      row.querySelector('.set-num').textContent = i + 1;
+      row.querySelector('.set-delete-btn').dataset.idx = i;
+    });
+  });
+
+  document.getElementById('add-set-btn').addEventListener('click', () => {
+    const rows = container.querySelectorAll('.set-row');
+    const newIdx = rows.length;
+    const div = document.createElement('div');
+    div.innerHTML = buildSetRow(newIdx, { reps: '', weight: '', notes: '' });
+    container.appendChild(div.firstElementChild);
+  });
+}
+
+function bindRunModal(wk, di, wi) {
+  // Auto-calculate pace when distance + duration change
+  const distInput = document.getElementById('run-distance');
+  const durInput  = document.getElementById('run-duration');
+  const paceInput = document.getElementById('run-pace');
+
+  function calcPace() {
+    const dist = parseFloat(distInput.value);
+    const durStr = durInput.value.trim();
+    if (!dist || !durStr) return;
+    const parts = durStr.split(':').map(Number);
+    let totalSecs = 0;
+    if (parts.length === 3) totalSecs = parts[0] * 3600 + parts[1] * 60 + parts[2];
+    else if (parts.length === 2) totalSecs = parts[0] * 60 + parts[1];
+    if (!totalSecs || !dist) return;
+    const secsPerKm = totalSecs / dist;
+    const paceMin = Math.floor(secsPerKm / 60);
+    const paceSec = Math.round(secsPerKm % 60);
+    paceInput.value = `${paceMin}:${String(paceSec).padStart(2, '0')}`;
+  }
+
+  if (distInput) distInput.addEventListener('input', calcPace);
+  if (durInput)  durInput.addEventListener('blur', calcPace);
+}
+
+function bindMobilityModal(wk, di, wi) { /* nothing extra needed */ }
+
+function saveModalData(wk, di, wi) {
+  const workout = trackerData[wk][di][wi];
+
+  if (workout.cat === 'run') {
+    workout.runData = {
+      distance:  document.getElementById('run-distance')?.value || '',
+      duration:  document.getElementById('run-duration')?.value || '',
+      pace:      document.getElementById('run-pace')?.value || '',
+      avgHR:     document.getElementById('run-avg-hr')?.value || '',
+      maxHR:     document.getElementById('run-max-hr')?.value || '',
+      elevGain:  document.getElementById('run-elev')?.value || '',
+      notes:     document.getElementById('run-notes')?.value || '',
+    };
+  } else if (workout.cat === 'strength') {
+    const rows = document.querySelectorAll('#sets-container .set-row');
+    workout.sets = Array.from(rows).map(row => ({
+      reps:   row.querySelector('.set-reps')?.value || '',
+      weight: row.querySelector('.set-weight')?.value || '',
+      notes:  row.querySelector('.set-notes')?.value || '',
+    }));
+  } else if (workout.cat === 'mobility') {
+    workout.mobilityData = {
+      duration: document.getElementById('mob-duration')?.value || '',
+      notes:    document.getElementById('mob-notes')?.value || '',
+    };
+  }
+
+  saveTrackerData();
+  renderTrackerWeek();
+  closeLogModal();
+}
+
+// ── Hook initTracker into DOMContentLoaded ────────────────────────────────────
+// Patch the existing DOMContentLoaded by appending call
+document.addEventListener('DOMContentLoaded', () => {
+  initTracker();
+});

@@ -952,3 +952,266 @@ body {
   .grid-3 { grid-template-columns: 1fr 1fr; }
   .calendar-grid { grid-template-columns: repeat(4, 1fr); }
 }
+
+/* ═══════════════════════════════════════════
+   WORKOUT TRACKER
+═══════════════════════════════════════════ */
+
+/* Pool filter buttons */
+.pool-filter-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.pool-filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+.pool-filter-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+
+/* Draggable pool item */
+.pool-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg-muted);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  cursor: grab;
+  font-size: 12.5px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  transition: all var(--transition);
+  user-select: none;
+}
+.pool-item:hover { background: white; border-color: var(--accent); }
+.pool-item:active { cursor: grabbing; opacity: 0.75; }
+.pool-item.dragging { opacity: 0.4; }
+
+.pool-item-icon { font-size: 15px; flex-shrink: 0; }
+.pool-item-name { flex: 1; line-height: 1.3; }
+.pool-item-cat {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.cat-run     { background: #ddeeff; color: var(--mountain); }
+.cat-strength{ background: #fff0e8; color: var(--accent-dark); }
+.cat-mobility{ background: #e8f4ec; color: var(--green); }
+
+/* Tracker day columns */
+.tracker-day-col {
+  background: var(--bg-muted);
+  border-radius: var(--radius);
+  padding: 10px 8px;
+  min-height: 200px;
+  border: 2px dashed transparent;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.tracker-day-col.drag-over {
+  border-color: var(--accent);
+  background: #fff8f5;
+}
+.tracker-day-col.today-col { background: #fff8f5; border-color: #f0c0a0; border-style: solid; }
+
+.tracker-day-header {
+  text-align: center;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.tracker-day-name {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+.tracker-day-num {
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 1.1;
+  color: var(--text);
+}
+.tracker-day-num.today-num { color: var(--accent); }
+
+.tracker-day-drop-hint {
+  font-size: 10px;
+  color: var(--border);
+  text-align: center;
+  padding: 12px 0;
+  font-family: var(--font-mono);
+}
+
+/* Logged workout card inside a day */
+.logged-workout {
+  background: white;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+  position: relative;
+}
+.logged-workout:hover { border-color: var(--accent); box-shadow: 0 2px 8px rgba(196,98,45,0.1); }
+
+.logged-workout-name {
+  font-weight: 600;
+  font-size: 12.5px;
+  margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.logged-workout-meta {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  line-height: 1.5;
+}
+
+.logged-workout-delete {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.logged-workout:hover .logged-workout-delete { opacity: 1; }
+.logged-workout-delete:hover { background: #fee; color: #c00; }
+
+/* logged set row inside modal */
+.set-row {
+  display: grid;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.set-row.strength-row { grid-template-columns: 28px 1fr 1fr 1fr 32px; }
+.set-row.run-row      { grid-template-columns: 1fr; }
+
+.set-row input, .set-row select {
+  padding: 7px 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-size: 13px;
+  background: var(--bg-muted);
+  color: var(--text);
+  font-family: var(--font-body);
+  width: 100%;
+  transition: border-color var(--transition);
+}
+.set-row input:focus, .set-row select:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: white;
+}
+
+.set-num {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.set-delete-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+}
+.set-delete-btn:hover { background: #fee; color: #c00; }
+
+.modal-add-set-btn {
+  width: 100%;
+  padding: 8px;
+  border: 1.5px dashed var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: all var(--transition);
+  margin-top: 2px;
+}
+.modal-add-set-btn:hover { border-color: var(--accent); color: var(--accent); background: #fff8f5; }
+
+.modal-save-btn {
+  width: 100%;
+  padding: 11px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+  margin-top: 16px;
+  transition: background var(--transition);
+}
+.modal-save-btn:hover { background: var(--accent-dark); }
+
+.modal-field-label {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.run-fields-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.workout-complete-badge {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  flex-shrink: 0;
+}
+.workout-logged-badge {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--amber);
+  flex-shrink: 0;
+}
